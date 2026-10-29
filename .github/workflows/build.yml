@@ -1,0 +1,28 @@
+name: Build Bomberman 64 3DSX
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the game inside Docker
+        run: |
+          mkdir -p salida
+          docker run --rm \
+            -v ${{ github.workspace }}/salida:/salida \
+            taelds/bm64-3ds-builder || true
+
+      - name: Upload Output Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bomberman64-3DS-Files
+          path: salida/
+          
