@@ -1,4 +1,36 @@
 
+name: Inspect Bomberman 64 Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Inspect project files
+        run: |
+          echo "=== Root directory ==="
+          pwd
+          ls -la
+
+          echo "=== Build scripts ==="
+          find . -maxdepth 4 -type f \
+            \( -name 'Makefile' \
+            -o -name 'makefile' \
+            -o -name 'Dockerfile' \
+            -o -name '*.sh' \) \
+            -not -path './.git/*'
+            
       - name: Inspect project files
         run: |
           echo "=== Current directory ==="
