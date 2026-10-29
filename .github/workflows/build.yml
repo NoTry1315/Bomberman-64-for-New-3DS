@@ -24,25 +24,28 @@ jobs:
 
       - name: Build Executable Homebrew
         run: |
-          # 1. Jalankan kompilasi utama menggunakan Makefile resmi proyek
+          # 1. Pindah secara mutlak ke folder proyek utama di dalam Docker
+          cd "$GITHUB_WORKSPACE"
+          
+          # 2. Jalankan kompilasi menggunakan Makefile resmi proyek
           make TARGET=3DS -j$(nproc)
           
-          # 2. Buat struktur folder pengeluaran (salida) secara bertahap langsung di root
+          # 3. Buat struktur folder pengeluaran (salida) langsung di root proyek
           mkdir -p salida/SD/3ds/bm64
           
-          # 3. Salin folder resources bawaan jika ada
+          # 4. Salin folder resources bawaan jika ada
           if [ -d resources ]; then
             cp -r resources/* salida/SD/3ds/bm64/
           fi
           
-          # 4. Ambil langsung file .3dsx dari folder utama tanpa pencarian rumit
+          # 5. Ambil langsung file .3dsx dari folder utama tanpa pencarian rumit
           cp *.3dsx salida/SD/3ds/
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: salida/
+          path: ${{ github.workspace }}/salida/
           if-no-files-found: error
           retention-days: 30
           
