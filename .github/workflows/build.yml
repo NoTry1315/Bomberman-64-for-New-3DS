@@ -23,21 +23,19 @@ jobs:
 
       - name: Build Executable Homebrew
         run: |
-          # Trik Otomatis: Cari folder tempat file build_rt.sh berada dan masuk ke sana
-          TARGET_DIR=$(find / -name "build_rt.sh" -path "*/Bomberman-64-for-New-3DS*" -print -quit 2>/dev/null | xargs dirname)
+          # Cari folder proyek berdasarkan file build_3ds.sh yang asli
+          TARGET_DIR=$(find / -name "build_3ds.sh" -print -quit 2>/dev/null | xargs dirname)
           if [ -n "$TARGET_DIR" ]; then
             echo "Folder proyek ditemukan di: $TARGET_DIR"
             cd "$TARGET_DIR"
-          else
-            echo "Mencoba folder kerja saat ini..."
           fi
           
           # Buat folder untuk menampung hasil jadi
           mkdir -p salida/SD/3ds/bm64
           
-          # Berikan izin akses eksekusi dan jalankan kompilasi
-          chmod +x ./build_rt.sh
-          ./build_rt.sh || true
+          # Berikan izin akses eksekusi dan jalankan kompilasi pada file yang benar
+          chmod +x ./build_3ds.sh
+          ./build_3ds.sh || true
           
           # Menyalin aset game ke folder pengeluaran
           cp -r resources/ salida/SD/3ds/bm64/ || true
