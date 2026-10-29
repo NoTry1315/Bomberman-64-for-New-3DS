@@ -8,51 +8,56 @@ permissions:
   contents: read
 
 jobs:
-  convert:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Check Docker and installer
+      - name: Check Docker
+        run: docker --version
+
+      - name: Download ROM
         run: |
-          docker --version
-          docker info
-          test -f instalar.sh
-          chmod +x instalar.sh
+          set -eu
+          curl -fLsS --retry 3 \
+            "https://0807.st/pcDTKAI.z64" \
+            -o "$RUNNER_TEMP/bm64.z64"
 
-      - name: Prepare ROM
-        env:
-          BM64_ROM_URL: ${{ secrets.BM64_ROM_URL }}
+          test -s "$RUNNER_TEMP/bm64.z64"
+          file "$RUNNER_TEMP/bm64.z64"
+
+      - name: Build Bomberman 64
         run: |
           set -eu
 
-          if [ -z "$BM64_ROM_URL" ]; then
-            echo "Secret BM64_ROM_URL belum diatur."
+          if [ ! -f instalar.sh ]; then
+            echo "File instalar.sh tidak ditemukan."
             exit 1
           fi
 
-          curl --fail --silent --show-error --location \
-            "$BM64_ROM_URL" \
-            --output "$RUNNER_TEMP/bm64.z64"
+          chmod +x instalar.sh
+          ./instalar.sh "$RUNNER_TEMP/bm64.z64"
 
-          test -s "$RUNNER_TEMP/bm64.z64"
-          ls -lh "$RUNNER_TEMP/bm64.z64"
-
-      - name: Build Executable Homebrew
+      - name: Find 3DSX
         run: |
           set -eu
-          ./instalar.sh "$RUNNER_TEMP/bm64.z64"
-          test -f salida/SD/3ds/bm64.3dsx
-          echo "Build berhasil."
+          find . -type f -name '*.3dsx' \
+            -not -path './.git/*' \
+            -not -path './salida/*' \
+            -exec cp {} ./bm64.3dsx \;
 
-      - name: Upload Output Artifact
+          test -f bm64.3dsx
+
+      - name: Upload 3DSX
         uses: actions/upload-artifact@v4
         with:
-          name: Bomberman64-3DS-Files
-          path: salida/SD/
+          name: Bomberman64-3DSX
+          path: bm64.3dsx
           if-no-files-found: error
           retention-days: 1
           
