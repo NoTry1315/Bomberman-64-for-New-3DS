@@ -1,38 +1,49 @@
 name: Build Bomberman 64 3DSX
 
 on:
+  push:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: devkitpro/devkitarm:latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install System Dependencies
-        run: |
-          apt-get update
-          apt-get install -y p7zip-full build-essential cmake ninja-build clang lld python3 python3-pillow git
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ca-certificates perl make wget gnupg python3 python3-pillow
+
+      - name: Install devkitPro tools
+        run: |
+          # Unduh dan pasang pengelola paket devkitPro resmi untuk Ubuntu
+          wget https://github.com
+          sudo apt-get install -y ./devkitpro-pacman.amd64.deb
+          
+          # Sinkronisasi dan pasang kompiler khusus Nintendo 3DS (3ds-dev)
+          sudo dkp-pacman -Syy --noconfirm
+          sudo dkp-pacman -S 3ds-dev --noconfirm
+
       - name: Build Executable Homebrew
         run: |
-          # Masuk ke folder kerja proyek menggunakan variabel lingkungan resmi
-          cd "$GITHUB_WORKSPACE"
+          # Atur variabel lingkungan compiler agar terbaca oleh sistem
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITARM=$DEVKITPRO/devkitARM
+          export PATH=$DEVKITPRO/tools/bin:$DEVKITARM/bin:$PATH
           
+          # Buat struktur folder luaran
           mkdir -p salida/SD/3ds/bm64
           
-          # Mengatur hak akses eksekusi script penata build secara lokal
+          # Berikan izin akses eksekusi dan jalankan kompilasi otomatis bawaan repo
           chmod +x build_rt.sh
-          
-          # Jalankan kompilasi utama menggunakan compiler internal devkitARM
           ./build_rt.sh || true
           
-          # Menyusun hasil aset ke folder keluaran
+          # Menyusun komponen aset ke dalam folder paket zip
           cp -r resources/ salida/SD/3ds/bm64/ || true
           if [ -f *.3dsx ]; then cp *.3dsx salida/SD/3ds/; fi
           if [ -f build/*.3dsx ]; then cp build/*.3dsx salida/SD/3ds/; fi
@@ -41,5 +52,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: ${{ github.workspace }}/salida/
+          path: salida/
+          if-no-files-found: warn
           
