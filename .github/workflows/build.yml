@@ -1,19 +1,64 @@
 
-name: Inspect Bomberman 64 Build
+name: Build Bomberman 64 3DSX
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  inspect:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: List project files
+      - name: Build using project Dockerfile
         run: |
-          pwd
-          ls -la
-          find . -maxdepth 4 -type f
+          set -eu
+
+          test -f instalador/Dockerfile
+          test -f instalador/construir.sh
+
+          docker build \
+            -t bm64-builder \
+            -f instalador/Dockerfile .
+
+      - name: Check ROM URL
+        env:
+          ROM_URL: ${{ secrets.BM64_ROM_URL }}
+        run: |
+          set -eu
+          if [ -z "$ROM_URL" ]; then
+            echo "BM64_ROM_URL belum diatur."
+            exit 1
+          fi
+
+      - name: Build game
+        env:
+          ROM_URL: ${{ secrets.BM64_ROM_URL }}
+        run: |
+          set -eu
+
+          curl -fLsS --retry 3 \
+            "$ROM_URL" \
+            -o "$RUNNER_TEMP/bm64.z64"
+
+          mkdir -p "$RUNNER_TEMP/output"
+
+          docker run --rm \
+            -v "$RUNNER_TEMP:/input" \
+            -v "$RUNNER_TEMP/output:/output" \
+            bm64-builder \
+            sh -lc \
+            'cd /workspace 2>/dev/null || cd /src 2>/dev/null || exit 1'
+
+      - name: Locate output
+        run: |
+          find "$RUNNER_TEMP/output" -type f -name '*.3dsx'
           
