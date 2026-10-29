@@ -21,7 +21,9 @@ jobs:
 
       - name: Build Executable Homebrew
         run: |
-          # Buat folder output langsung di folder kerja saat ini
+          # Masuk ke folder kerja proyek menggunakan variabel lingkungan resmi
+          cd "$GITHUB_WORKSPACE"
+          
           mkdir -p salida/SD/3ds/bm64
           
           # Mengatur hak akses eksekusi script penata build secara lokal
@@ -39,5 +41,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: salida/
+          path: ${{ github.workspace }}/salida/
           
