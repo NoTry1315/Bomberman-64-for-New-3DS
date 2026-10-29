@@ -1,63 +1,17 @@
 
-name: Build Bomberman 64 3DSX
-
-on:
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Check Docker
-        run: docker --version
-
-      - name: Download ROM
+      - name: Inspect project files
         run: |
-          set -eu
-          curl -fLsS --retry 3 \
-            "https://0807.st/pcDTKAI.z64" \
-            -o "$RUNNER_TEMP/bm64.z64"
+          echo "=== Current directory ==="
+          pwd
 
-          test -s "$RUNNER_TEMP/bm64.z64"
-          file "$RUNNER_TEMP/bm64.z64"
+          echo "=== Root files ==="
+          ls -la
 
-      - name: Build Bomberman 64
-        run: |
-          set -eu
-
-          if [ ! -f instalar.sh ]; then
-            echo "File instalar.sh tidak ditemukan."
-            exit 1
-          fi
-
-          chmod +x instalar.sh
-          ./instalar.sh "$RUNNER_TEMP/bm64.z64"
-
-      - name: Find 3DSX
-        run: |
-          set -eu
-          find . -type f -name '*.3dsx' \
-            -not -path './.git/*' \
-            -not -path './salida/*' \
-            -exec cp {} ./bm64.3dsx \;
-
-          test -f bm64.3dsx
-
-      - name: Upload 3DSX
-        uses: actions/upload-artifact@v4
-        with:
-          name: Bomberman64-3DSX
-          path: bm64.3dsx
-          if-no-files-found: error
-          retention-days: 1
-          
+          echo "=== Build scripts ==="
+          find . -maxdepth 3 -type f \
+            \( -name 'Makefile' \
+            -o -name 'makefile' \
+            -o -name 'Dockerfile' \
+            -o -name '*.sh' \) \
+            -not -path './.git/*'
+            
