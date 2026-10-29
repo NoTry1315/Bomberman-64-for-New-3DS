@@ -6,32 +6,29 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
     steps:
+      - name: Install System Dependencies
+        run: |
+          apt-get update
+          apt-get install -y p7zip-full build-essential cmake ninja-build clang lld python3 python3-pillow git
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install devkitPro & Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y p7zip-full build-essential cmake ninja-build clang lld python3 python3-pillow
-          # Unduh tool rantai compiler untuk 3DS (devkitARM)
-          wget https://github.com
-          sudo apt install ./devkitpro-pacman.amd64.deb
-          sudo dkp-pacman -Syy --noconfirm
-          sudo dkp-pacman -S 3ds-dev --noconfirm
-
       - name: Build Executable Homebrew
         run: |
           mkdir -p salida/SD/3ds/bm64
-          export DEVKITPRO=/opt/devkitpro
-          export DEVKITARM=$DEVKITPRO/devkitARM
-          # Jalankan skrip compiler internal repositori
+          # Mengatur hak akses eksekusi script penata build
           chmod +x build_rt.sh
+          
+          # Jalankan kompilasi utama menggunakan compiler internal devkitARM
           ./build_rt.sh || true
           
-          # Salin file mentah hasil kompilasi ke folder keluaran
+          # Menyusun hasil aset ke folder keluaran
           cp -r resources/ salida/SD/3ds/bm64/ || true
           if [ -f *.3dsx ]; then cp *.3dsx salida/SD/3ds/; fi
           if [ -f build/*.3dsx ]; then cp build/*.3dsx salida/SD/3ds/; fi
