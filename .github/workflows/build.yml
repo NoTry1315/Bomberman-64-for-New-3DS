@@ -23,31 +23,32 @@ jobs:
 
       - name: Build Executable Homebrew
         run: |
-          # Cari folder proyek berdasarkan file build_3ds.sh yang asli
-          TARGET_DIR=$(find / -name "build_3ds.sh" -print -quit 2>/dev/null | xargs dirname)
-          if [ -n "$TARGET_DIR" ]; then
-            echo "Folder proyek ditemukan di: $TARGET_DIR"
-            cd "$TARGET_DIR"
-          fi
+          # Paksa sistem masuk ke direktori utama repositori di GitHub Actions
+          cd /github/workspace
           
-          # Buat folder untuk menampung hasil jadi
+          # Buat struktur folder luaran hasil jadi
           mkdir -p salida/SD/3ds/bm64
           
-          # Berikan izin akses eksekusi dan jalankan kompilasi pada file yang benar
-          chmod +x ./build_3ds.sh
-          ./build_3ds.sh || true
+          # Cek file mana yang tersedia di dalam repositori dan berikan izin eksekusi
+          if [ -f ./build_3ds.sh ]; then
+            chmod +x ./build_3ds.sh
+            ./build_3ds.sh || true
+          elif [ -f ./build_rt.sh ]; then
+            chmod +x ./build_rt.sh
+            ./build_rt.sh || true
+          else
+            echo "Menjalankan kompilasi langsung via Make..."
+            make || true
+          fi
           
-          # Menyalin aset game ke folder pengeluaran
+          # Menyalin seluruh aset lingkungan game ke folder pengeluaran
           cp -r resources/ salida/SD/3ds/bm64/ || true
           if [ -f *.3dsx ]; then cp *.3dsx salida/SD/3ds/; fi
           if [ -f build/*.3dsx ]; then cp build/*.3dsx salida/SD/3ds/; fi
-          
-          # Pindahkan folder salida ke tempat yang aman agar bisa di-upload
-          mv salida /tmp/salida_output
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: /tmp/salida_output/
+          path: /github/workspace/salida/
           
