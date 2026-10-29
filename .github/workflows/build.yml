@@ -1,51 +1,58 @@
+
 name: Build Bomberman 64 3DSX
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   convert:
     runs-on: ubuntu-latest
-    container:
-      image: devkitpro/devkitarm:latest
+    timeout-minutes: 90
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Install Python Dependencies
+      - name: Check Docker and installer
         run: |
-          apt-get update
-          apt-get install -y python3 python3-pillow git
+          docker --version
+          docker info
+          test -f instalar.sh
+          chmod +x instalar.sh
+
+      - name: Prepare ROM
+        env:
+          BM64_ROM_URL: ${{ secrets.BM64_ROM_URL }}
+        run: |
+          set -eu
+
+          if [ -z "$BM64_ROM_URL" ]; then
+            echo "Secret BM64_ROM_URL belum diatur."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --location \
+            "$BM64_ROM_URL" \
+            --output "$RUNNER_TEMP/bm64.z64"
+
+          test -s "$RUNNER_TEMP/bm64.z64"
+          ls -lh "$RUNNER_TEMP/bm64.z64"
 
       - name: Build Executable Homebrew
         run: |
-          # 1. Pindah secara mutlak ke folder proyek utama di dalam Docker
-          cd "$GITHUB_WORKSPACE"
-          
-          # 2. Jalankan kompilasi menggunakan Makefile resmi proyek
-          make TARGET=3DS -j$(nproc)
-          
-          # 3. Buat struktur folder pengeluaran (salida) langsung di root proyek
-          mkdir -p salida/SD/3ds/bm64
-          
-          # 4. Salin folder resources bawaan jika ada
-          if [ -d resources ]; then
-            cp -r resources/* salida/SD/3ds/bm64/
-          fi
-          
-          # 5. Ambil langsung file .3dsx dari folder utama tanpa pencarian rumit
-          cp *.3dsx salida/SD/3ds/
+          set -eu
+          ./instalar.sh "$RUNNER_TEMP/bm64.z64"
+          test -f salida/SD/3ds/bm64.3dsx
+          echo "Build berhasil."
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: ${{ github.workspace }}/salida/
+          path: salida/SD/
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 1
           
