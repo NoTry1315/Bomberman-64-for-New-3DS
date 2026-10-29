@@ -1,54 +1,56 @@
-name: Build Bomberman 64 3DSX
+nname: Build Bomberman 64 3DSX
 
 on:
   push:
     branches: [ main, master ]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    container:
-      image: devkitpro/devkitarm:latest
+  convert:
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install Python Dependencies
+      - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y python3 python3-pillow git
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ca-certificates perl make wget gnupg python3 python3-pillow
+
+      - name: Install devkitPro Toolchain
+        run: |
+          sudo mkdir -p /usr/local/share/keyrings
+          wget -O- https://devkitpro.org | sudo tee /usr/local/share/keyrings/devkitpro-keyring.gpg > /dev/null
+          echo "deb [signed-by=/usr/local/share/keyrings/devkitpro-keyring.gpg] https://devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends 3ds-dev
 
       - name: Build Executable Homebrew
         run: |
-          # Paksa sistem masuk ke direktori utama repositori di GitHub Actions
-          cd /github/workspace
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITARM=$DEVKITPRO/devkitARM
+          export PATH=$DEVKITPRO/tools/bin:$DEVKITARM/bin:$PATH
           
-          # Buat struktur folder luaran hasil jadi
+          # 1. Jalankan perintah kompilasi Makefile bawaan untuk platform 3DS
+          make TARGET=3DS -j$(nproc)
+          
+          # 2. Buat struktur folder penampung keluaran (salida)
           mkdir -p salida/SD/3ds/bm64
           
-          # Cek file mana yang tersedia di dalam repositori dan berikan izin eksekusi
-          if [ -f ./build_3ds.sh ]; then
-            chmod +x ./build_3ds.sh
-            ./build_3ds.sh || true
-          elif [ -f ./build_rt.sh ]; then
-            chmod +x ./build_rt.sh
-            ./build_rt.sh || true
-          else
-            echo "Menjalankan kompilasi langsung via Make..."
-            make || true
-          fi
+          # 3. Salin aset game (resources) ke dalam folder target aplikasi
+          if [ -d resources ]; then cp -r resources/* salida/SD/3ds/bm64/; fi
           
-          # Menyalin seluruh aset lingkungan game ke folder pengeluaran
-          cp -r resources/ salida/SD/3ds/bm64/ || true
-          if [ -f *.3dsx ]; then cp *.3dsx salida/SD/3ds/; fi
-          if [ -f build/*.3dsx ]; then cp build/*.3dsx salida/SD/3ds/; fi
+          # 4. Cari file .3dsx hasil kompilasi dan pindahkan ke folder salida
+          find . -name "*.3dsx" -exec cp {} salida/SD/3ds/ \;
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: /github/workspace/salida/
+          path: salida/
+          if-no-files-found: error
+          retention-days: 30
           
