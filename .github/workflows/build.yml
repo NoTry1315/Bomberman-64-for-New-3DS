@@ -8,32 +8,22 @@ on:
 
 jobs:
   convert:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkitarm:latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install dependencies
+      - name: Install Python Dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends ca-certificates perl make wget gnupg python3 python3-pillow
-
-      - name: Install devkitPro Toolchain
-        run: |
-          sudo mkdir -p /usr/local/share/keyrings
-          wget -O- https://devkitpro.org | sudo tee /usr/local/share/keyrings/devkitpro-keyring.gpg > /dev/null
-          echo "deb [signed-by=/usr/local/share/keyrings/devkitpro-keyring.gpg] https://devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends 3ds-dev
+          apt-get update
+          apt-get install -y python3 python3-pillow git
 
       - name: Build Executable Homebrew
         run: |
-          export DEVKITPRO=/opt/devkitpro
-          export DEVKITARM=$DEVKITPRO/devkitARM
-          export PATH=$DEVKITPRO/tools/bin:$DEVKITARM/bin:$PATH
-          
           # 1. Jalankan kompilasi utama menggunakan Makefile resmi proyek
           make TARGET=3DS -j$(nproc)
           
