@@ -22,25 +22,34 @@ jobs:
           apt-get install -y python3 python3-pillow git
 
       - name: Build Executable Homebrew
-        working-directory: /__w/Bomberman-64-for-New-3DS/Bomberman-64-for-New-3DS
         run: |
+          # Trik Otomatis: Cari folder tempat file build_rt.sh berada dan masuk ke sana
+          TARGET_DIR=$(find / -name "build_rt.sh" -path "*/Bomberman-64-for-New-3DS*" -print -quit 2>/dev/null | xargs dirname)
+          if [ -n "$TARGET_DIR" ]; then
+            echo "Folder proyek ditemukan di: $TARGET_DIR"
+            cd "$TARGET_DIR"
+          else
+            echo "Mencoba folder kerja saat ini..."
+          fi
+          
           # Buat folder untuk menampung hasil jadi
           mkdir -p salida/SD/3ds/bm64
           
-          # Memberikan izin eksekusi skrip kompilasi bawaan repo
+          # Berikan izin akses eksekusi dan jalankan kompilasi
           chmod +x ./build_rt.sh
-          
-          # Jalankan proses build compiler utama
           ./build_rt.sh || true
           
           # Menyalin aset game ke folder pengeluaran
           cp -r resources/ salida/SD/3ds/bm64/ || true
           if [ -f *.3dsx ]; then cp *.3dsx salida/SD/3ds/; fi
           if [ -f build/*.3dsx ]; then cp build/*.3dsx salida/SD/3ds/; fi
+          
+          # Pindahkan folder salida ke tempat yang aman agar bisa di-upload
+          mv salida /tmp/salida_output
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Bomberman64-3DS-Files
-          path: /__w/Bomberman-64-for-New-3DS/Bomberman-64-for-New-3DS/salida/
+          path: /tmp/salida_output/
           
