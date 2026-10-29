@@ -1,4 +1,4 @@
-nname: Build Bomberman 64 3DSX
+name: Build Bomberman 64 3DSX
 
 on:
   push:
@@ -34,17 +34,19 @@ jobs:
           export DEVKITARM=$DEVKITPRO/devkitARM
           export PATH=$DEVKITPRO/tools/bin:$DEVKITARM/bin:$PATH
           
-          # 1. Jalankan perintah kompilasi Makefile bawaan untuk platform 3DS
+          # 1. Jalankan kompilasi utama menggunakan Makefile resmi proyek
           make TARGET=3DS -j$(nproc)
           
-          # 2. Buat struktur folder penampung keluaran (salida)
+          # 2. Buat struktur folder pengeluaran (salida) secara bertahap langsung di root
           mkdir -p salida/SD/3ds/bm64
           
-          # 3. Salin aset game (resources) ke dalam folder target aplikasi
-          if [ -d resources ]; then cp -r resources/* salida/SD/3ds/bm64/; fi
+          # 3. Salin folder resources bawaan jika ada
+          if [ -d resources ]; then
+            cp -r resources/* salida/SD/3ds/bm64/
+          fi
           
-          # 4. Cari file .3dsx hasil kompilasi dan pindahkan ke folder salida
-          find . -name "*.3dsx" -exec cp {} salida/SD/3ds/ \;
+          # 4. Ambil langsung file .3dsx dari folder utama tanpa pencarian rumit
+          cp *.3dsx salida/SD/3ds/
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
