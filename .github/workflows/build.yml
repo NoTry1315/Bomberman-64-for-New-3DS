@@ -9,16 +9,32 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build the game inside Docker
+      - name: Install devkitPro & Dependencies
         run: |
-          mkdir -p salida
-          docker run --rm \
-            -v ${{ github.workspace }}/salida:/salida \
-            taelds/bm64-3ds-builder || true
+          sudo apt-get update
+          sudo apt-get install -y p7zip-full build-essential cmake ninja-build clang lld python3 python3-pillow
+          # Unduh tool rantai compiler untuk 3DS (devkitARM)
+          wget https://github.com
+          sudo apt install ./devkitpro-pacman.amd64.deb
+          sudo dkp-pacman -Syy --noconfirm
+          sudo dkp-pacman -S 3ds-dev --noconfirm
+
+      - name: Build Executable Homebrew
+        run: |
+          mkdir -p salida/SD/3ds/bm64
+          export DEVKITPRO=/opt/devkitpro
+          export DEVKITARM=$DEVKITPRO/devkitARM
+          # Jalankan skrip compiler internal repositori
+          chmod +x build_rt.sh
+          ./build_rt.sh || true
+          
+          # Salin file mentah hasil kompilasi ke folder keluaran
+          cp -r resources/ salida/SD/3ds/bm64/ || true
+          if [ -f *.3dsx ]; then cp *.3dsx salida/SD/3ds/; fi
+          if [ -f build/*.3dsx ]; then cp build/*.3dsx salida/SD/3ds/; fi
 
       - name: Upload Output Artifact
         uses: actions/upload-artifact@v4
