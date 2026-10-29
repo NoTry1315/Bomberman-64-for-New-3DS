@@ -21,13 +21,16 @@ jobs:
 
       - name: Install devkitPro tools
         run: |
-          # Unduh dan pasang pengelola paket devkitPro resmi untuk Ubuntu
-          wget https://github.com
-          sudo apt-get install -y ./devkitpro-pacman.amd64.deb
+          # Unduh dan pasang kunci repositori devkitPro resmi
+          sudo mkdir -p /usr/local/share/keyrings
+          wget -O- https://devkitpro.org | sudo tee /usr/local/share/keyrings/devkitpro-keyring.gpg > /dev/null
           
-          # Sinkronisasi dan pasang kompiler khusus Nintendo 3DS (3ds-dev)
-          sudo dkp-pacman -Syy --noconfirm
-          sudo dkp-pacman -S 3ds-dev --noconfirm
+          # Tambahkan repositori devkitPro ke daftar paket Ubuntu
+          echo "deb [signed-by=/usr/local/share/keyrings/devkitpro-keyring.gpg] https://devkitpro.org stable main" | sudo tee /etc/apt/sources.list.d/devkitpro.list
+          
+          # Perbarui dan pasang kompiler khusus Nintendo 3DS (3ds-dev)
+          sudo apt-get update
+          sudo apt-get install -y 3ds-dev
 
       - name: Build Executable Homebrew
         run: |
